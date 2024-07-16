@@ -91,7 +91,25 @@
 <script type="module">
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"
 
+// ********** TO BE UPDATED ***************
 var city = 'Curitiba';
+const csvUrl = 'https://raw.githubusercontent.com/caiocaminoski/caiocaminoski.github.io/main/street-gender-equality/data/curitiba.csv';
+
+// defining viewbox
+const minLat = -25.6489423
+const maxLat = -25.343117
+const minLon = -49.3926966
+const maxLon = -49.1832167
+
+const speedPlacement = 1
+
+var scalingFactor = 0.5 // 0 = original
+
+const compensationXDesktop = 160  // for desktop view it may be needed to add a compensation if scaling factor is set to >0
+const compensationYMobile = 40 // for mobile view it may be needed to add a compensation if scaling factor is set to >0
+
+// *****************************************
+
 
 var device;
 var chartLabelSize;
@@ -131,23 +149,21 @@ if ( window.innerWidth < 992 ) {
     var fChart = {x: margin.left/2, y: chartYPosition * 2};
     var mChart = {x: margin.left/2, y: chartYPosition * 4};
 
-    var chartRadius = margin.left * 0.4
+    var chartRadius = margin.left * 0.35
 
     chartLabelSize = 20;
     kpiTextSize = 42;
     kpiUnderlineSize = 100;
 
 }
-
-const compensationX = (device == 'desktop')? 160 : 0;
-const compensationY = (device == 'desktop')? 0 : 40;
+const compensationX = (device == 'desktop')? compensationXDesktop : 0;
+const compensationY = (device == 'desktop')? 0 : compensationYMobile;
 
 var cPathM = '#27A8D8',
     cPathF = '#D85727',
     cPathO = 'gray';
 
 (async () => {
-  const csvUrl = 'https://raw.githubusercontent.com/caiocaminoski/caiocaminoski.github.io/main/curitiba-gender-equality/curitiba.csv';
   
   try {
     const response = await fetch(csvUrl);
@@ -213,12 +229,6 @@ function processData(data) {
         .attr('gender', 'HOMENS')
         .style('color', cPathF)
 
-    // defining viewbox
-    const minLat = -25.6489423
-    const maxLat = -25.343117
-    const minLon = -49.3926966
-    const maxLon = -49.1832167
-
     const lonRange = maxLon - minLon;
     const latRange = maxLat - minLat;
     
@@ -230,7 +240,6 @@ function processData(data) {
 
     let scaleX, scaleY;
 
-    var scalingFactor = 0.5 // 0 = original
 
     const fractionLonRang = lonRange * scalingFactor;
     const fractionLatRang = latRange * scalingFactor;
@@ -375,6 +384,22 @@ function processData(data) {
         }
     }
 
+    // Three function that change the tooltip when user hover / move / leave a cell
+    var mouseoverKPI = function(e, d) {
+        Tooltip.transition().duration(300).ease(d3.easeCubic)
+            .style("opacity", 0.9)
+    }
+    var mousemoveKPI = function(e, d) {
+        Tooltip
+        .html(`${d[2]} ruas foram classificadas como referentes a ${d[5].toLowerCase()} (${percFormatDec(d[2]/P_count)})`)
+        .style("left", (e.pageX) + "px")
+        .style("top", (e.pageY + 30) + "px")
+    }
+    var mouseleaveKPI = function(e, d) {
+        Tooltip.transition().duration(300).ease(d3.easeCubic)
+            .style("opacity", 0)
+    }
+
     // ****************** START APPENDING PATHS ****************
 
     // append gray streets
@@ -421,7 +446,6 @@ function processData(data) {
     }
 
     function handleZoom(e) {
-        console.log(e)
         d3.select('g.map')
             .attr('transform', e.transform);
     }
@@ -458,8 +482,10 @@ function processData(data) {
     
     const dStartWayPlacement = dDelayStart + dCirclesAdjust + dWaitToPlaceWays
 
-    const dMWayPlacement = M_count * 2 // wait between each path placement is 2ms
-    const dFWayPlacement = F_count * 2 // wait between each path placement is 2ms
+    const msInBetweenPlacements = 2 / speedPlacement
+
+    const dMWayPlacement = M_count * msInBetweenPlacements // wait between each path placement is 2ms
+    const dFWayPlacement = F_count * msInBetweenPlacements // wait between each path placement is 2ms
     const dWayPlacement = d3.max([dMWayPlacement, dFWayPlacement])
 
     const dUntilPlacementEnd = dStartWayPlacement + dWayPlacement + OneWayPlacementDuration
@@ -501,6 +527,7 @@ function processData(data) {
         .attr('r', d => sqrtScale(0))
 
     const percFormat = d3.format('.0%')
+    const percFormatDec = d3.format('.1%')
 
     const circlesText = svg.selectAll('text.chart').data(circlesData)
 
@@ -528,13 +555,13 @@ function processData(data) {
 
     // text moves down while circles get emptier while ways are placed
     svg.selectAll('text.chart').transition(tCirclesFade).duration(d => d[4]).delay(dStartWayPlacement)
-        // .attr('y', d => d[1] - 8)
-        .attr('y', d => d[1])
+        .attr('y', d => d[1] - 8)
 
     // text grows to final KPI
     svg.selectAll('text.chart')
         .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
         .style('font-size', `${kpiTextSize}pt`)
+        .attr('y', d => d[1])
         .style('cursor', 'pointer')
 
     const circlesTextUnderline = svg.selectAll('line.chart').data(circlesData)
@@ -624,8 +651,8 @@ function processData(data) {
 
     svg.selectAll('path.pathM').transition(tPlaceWays).duration(OneWayPlacementDuration)
         .delay((d, i)=>{
-            svg.select(`.pre-colored[id='${d.id}']`).transition().duration(30).attr('opacity',0).delay(dStartWayPlacement + OneWayPlacementDuration + (i * (2))) // remove gray path once colored one is placed
-            return dStartWayPlacement + (i * (2))  // 2 ms distance between path start moving
+            svg.select(`.pre-colored[id='${d.id}']`).transition().duration(30).attr('opacity',0).delay(dStartWayPlacement + OneWayPlacementDuration + (i * (msInBetweenPlacements))) // remove gray path once colored one is placed
+            return dStartWayPlacement + (i * (msInBetweenPlacements))  // 2 ms distance between path start moving
         })
         .attr('d', d => transformPathData(d.path_data))
         .style('opacity', 1)
@@ -648,8 +675,8 @@ function processData(data) {
 
     svg.selectAll('path.pathF').transition(tPlaceWays).duration(OneWayPlacementDuration)
         .delay((d, i)=>{
-            svg.select(`.pre-colored[id='${d.id}']`).transition().duration(0).attr('opacity',0).delay(dStartWayPlacement + OneWayPlacementDuration + (i * (2))) // remove gray path once colored one is placed
-            return dStartWayPlacement + (i * (2)) // 2 ms distance between path start moving
+            svg.select(`.pre-colored[id='${d.id}']`).transition().duration(0).attr('opacity',0).delay(dStartWayPlacement + OneWayPlacementDuration + (i * (msInBetweenPlacements))) // remove gray path once colored one is placed
+            return dStartWayPlacement + (i * (msInBetweenPlacements)) // 2 ms distance between path start moving
         })
         .attr('d', d => transformPathData(d.path_data))
         .style('opacity', 1)
@@ -679,8 +706,13 @@ function processData(data) {
             .style('opacity', 0.8)
 
         svg.selectAll('.kpi')    
+            // highlight
             .on("mouseenter", highlightGender)
             .on("mouseout", unHighlightGender)
+            // tooltips
+            .on("mouseover", mouseoverKPI)
+            .on("mousemove", mousemoveKPI)
+            .on("mouseleave", mouseleaveKPI)
             
     })
 }
