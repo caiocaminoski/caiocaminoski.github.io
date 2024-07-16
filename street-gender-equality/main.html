@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Igualdade de Genero nas ruas</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+</head>
+<body>
+    <h2 id="title" class="hidden">Analisando igualdade de gênero nas ruas de <span id="city"></span></h2>
+    <p id="description" class="hidden"> Entre os <span id="total-street-names"></span> nomes de ruas analisados, <span id="total-streets-people"></span> foram classificados como pertencendo a <span id="women-text">mulheres</span> ou <span id="men-text">homens</span>. Entre estes:</p>
+    <div id="container"></div>
+    
+</body>
+<style>
+
+    body {
+        margin: 0 0 0 0;
+        background: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: rgb(43, 43, 43);
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    svg {
+        margin: 0 0 0 0;
+        background: white;
+    }
+
+    path {
+        transition: stroke 0.3s;
+        cursor: pointer;
+    }
+
+    .overlay {
+        opacity: 0;
+    }
+
+    .footer {
+        color: #00000080;
+        font-size: 1em;
+        padding-right: 20px;
+        width: 100%; /* Set to 100% to fill the foreignObject */
+        height: 100%; /* Set to 100% to fill the foreignObject */
+        overflow: hidden;
+        display: flex;
+        flex-direction: column-reverse;
+    }
+    
+    .footer span {
+        display: block;
+        white-space: normal; /* Allows text wrapping */
+        word-break: break-word; 
+    }
+
+    .info {
+        color: gray;
+        font-size: small;
+    }
+
+    
+    h1, h2, h3, h4, h5, p {
+        margin-top: 12px; 
+        margin-bottom: 12px;
+        margin-left: 30px;
+        margin-right: 30px;
+    }
+
+    h1, h2, h3, h4, h5 {
+        font-size: 26px;
+    }
+
+    .kpi {
+        cursor: pointer;
+    }
+
+    /* Small devices (tablets, etc.) */
+    @media (min-width: 992px) { 
+
+        p { 
+            font-size: 1.2em;
+        }
+
+     }
+
+</style>
+<script type="module">
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"
+
+// Function to dynamically import a script with a callback
+function loadScript(src, callback) {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = callback; // Call the callback function when script is loaded
+    script.onerror = () => console.error(`Failed to load script: ${src}`);
+    document.head.append(script);
+}
+
+
+// Callback function to execute after script is loaded
+function scriptLoaded() {
+
+    const csvUrl = `https://raw.githubusercontent.com/caiocaminoski/caiocaminoski.github.io/main/street-gender-equality/data/${getCity()}.csv`;
+
+    var device;
+    var chartLabelSize;
+    var kpiTextSize;
+    var kpiUnderlineSize;
+
+    // ***** variables for small devices
+    if ( window.innerWidth < 992 ) {
+        device = 'mobile';
+        var margin = {top:84, right: 0, bottom: 50, left: 0},
+        width = window.innerWidth - margin.left - margin.right - 30,
+        height = window.innerHeight - margin.top - margin.bottom - (180);
+
+        const chartXPosition = window.innerWidth / 3
+
+        var fChart = {x: chartXPosition, y: margin.top/3 * 2};
+        var mChart = {x: chartXPosition * 2, y:  margin.top/3 * 2};
+
+        var chartRadius = margin.top * 0.4
+
+        chartLabelSize = 14;
+        kpiTextSize = 30;
+        kpiUnderlineSize = 80;
+        
+        
+    // ***** variables for larger devices
+    } else {
+
+        device = 'desktop';
+
+        var margin = {top:0, right: 0, bottom: 20, left: 350},
+        width = window.innerWidth - margin.left - margin.right - 30,
+        height = window.innerHeight - margin.top - margin.bottom - (98);
+
+        const chartYPosition = window.innerHeight / 7
+
+        var fChart = {x: margin.left/2, y: chartYPosition * 2};
+        var mChart = {x: margin.left/2, y: chartYPosition * 4};
+
+        var chartRadius = margin.left * 0.35
+
+        chartLabelSize = 20;
+        kpiTextSize = 42;
+        kpiUnderlineSize = 100;
+
+    }
+    const compensationX = (device == 'desktop')? compensationXDesktop : 0;
+    const compensationY = (device == 'desktop')? 0 : compensationYMobile;
+
+    var cPathM = '#27A8D8',
+        cPathF = '#D85727',
+        cPathO = 'gray';
+
+    (async () => {
+    
+    try {
+        const response = await fetch(csvUrl);
+        if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.statusText}`);
+        }
+        const csvText = await response.text();
+
+        // Parse CSV data using d3-dsv
+        const data_input = d3.csvParse(csvText);
+
+        const data = data_input.map((d, i)=>{
+            return {
+                id: i,
+                name: d.name,
+                path_data: d.path_data,
+                gender: d.gender
+            }
+        })
+        
+        processData(data);
+
+    } catch (error) {
+        console.error('Error fetching or parsing the CSV file:', error);
+    }
+    })();
+
+    function processData(data) {
+        
+        const ALL_Names = data.filter(function(d){ return d.name})
+
+        // filtering data
+        const M = data.filter(function(d){ return d.gender == "M" })
+        const F = data.filter(function(d){ return d.gender == "F" })
+        const O = data.filter(function(d){ return d.gender != "F"  && d.gender != "M"})
+
+        // defining main counts that will be plot in the charts
+        const M_count = Object.keys(M).length
+        const F_count = Object.keys(F).length
+        const P_count = M_count + F_count
+        const O_count = Object.keys(O).length
+
+
+        d3.select("#total-street-names").text(Object.keys(ALL_Names).length);
+        d3.select("#total-streets-people").text(P_count);
+        d3.select("#city").text(cityName);
+
+        // Reveal the title and desc after updating the text
+        d3.select("#title").classed("hidden", false);
+        d3.select("#description").classed("hidden", false);
+
+        // creating svg
+        const svg = d3.select('#container').append('svg')
+            .attr('height', height + margin.top + margin.bottom)
+            .attr('width', width + margin.left + margin.right)
+
+        // adjust color of text in description
+        d3.select('#men-text')
+            .attr('gender', 'MULHERES')
+            .style('color', cPathM)
+
+        d3.select('#women-text')
+            .attr('gender', 'HOMENS')
+            .style('color', cPathF)
+
+        const lonRange = maxLon - minLon;
+        const latRange = maxLat - minLat;
+        
+        // Calculate aspect ratio
+        const aspectRatio = width / height;
+
+        // Calculate the map's aspect ratio
+        const mapAspectRatio = lonRange / latRange;
+
+        let scaleX, scaleY;
+
+
+        const fractionLonRang = lonRange * scalingFactor;
+        const fractionLatRang = latRange * scalingFactor;
+
+        if (mapAspectRatio > aspectRatio) {
+            // The map is wider than the container
+            scaleX = d3.scaleLinear()
+            .domain([minLon, maxLon - fractionLonRang])
+            .range([margin.left, margin.left + width]);
+
+            const adjustedHeight = width / mapAspectRatio;
+            const offsetY = (height - adjustedHeight) / 2;
+
+            scaleY = d3.scaleLinear()
+            .domain([minLat + fractionLatRang, maxLat])
+            .range([margin.top + adjustedHeight + offsetY, margin.top + offsetY]);
+        } else {
+
+            const adjustedWidth = height * mapAspectRatio;
+            const offsetXTotal = (width - adjustedWidth);
+
+            var offsetXLeft = offsetXTotal / 2;
+            var offsetXRight = offsetXTotal / 2;
+
+            scaleX = d3.scaleLinear()
+            .domain([minLon, maxLon - fractionLonRang])
+            // .range([margin.left, margin.left + adjustedWidth]); // map oriented to the left
+            // .range([margin.left + offsetXLeft, margin.left + adjustedWidth + offsetXRight]);  // map centered
+            .range([margin.left + ((device == 'mobile') ? offsetXLeft : 0), margin.left + adjustedWidth + ((device == 'mobile') ? offsetXRight : 0)]);  // if it is a mobile it is adjusted to the center, otherwise it stays oriented right
+        
+            // The map is taller than the container
+            scaleY = d3.scaleLinear()
+            .domain([minLat + fractionLatRang, maxLat])
+            .range([margin.top + height, margin.top]);
+
+        }
+
+        // Function to transform path data
+        function transformPathData(pathData) {
+            return pathData.replace(/([ML])\s*([-\d.]+),([-\d.]+)/g, function(match, command, lon, lat) {
+                const transformedLon = scaleX(+lon)
+                const transformedLat = scaleY(+lat)
+                return `${command} ${transformedLon},${transformedLat}`
+            });
+        }
+
+        // highlight
+        // funciton to handle highlight
+        function handleMouseEnter() {
+            const overlay = svg.select('.overlay');
+
+            // Move the overlay to the end of the parent
+            overlay.node().parentNode.appendChild(overlay.node());
+
+            overlay.transition().duration(150).style('opacity', 1);
+
+            // create copy of the hovered item on top of the overlay
+            svg.select('.map').append('path')
+                .attr('id', 'hovered')
+                .attr('d', d3.select(this).attr('d'))
+                .attr('stroke', d3.select(this).attr('stroke'))
+                .style('fill', 'none')
+                .style('pointer-events', 'none')
+
+        }
+
+        // funciton to handle highlight
+        function handleMouseOut() {
+            const overlay = svg.select('.overlay');
+
+            overlay.transition().duration(150).style('opacity', 0);
+
+            // remove copy of the hovered item from the top of the overlay
+            svg.select('#hovered').remove()        
+        }
+
+        // Tooltip
+        // create a tooltip
+        var Tooltip = d3.select("#container")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-color", "lightgray")
+            .style("border-radius", "2px")
+            .style("padding", "5px")
+            .style('pointer-events', 'none')
+
+        // Three function that change the tooltip when user hover / move / leave a cell
+        var mouseover = function(e, d) {
+            if (d.name) {
+                Tooltip
+                .style("opacity", 1)
+            }
+        }
+        var mousemove = function(e, d) {
+            Tooltip
+            .html(d.name)
+            .style("left", (e.pageX + 30) + "px")
+            .style("top", (e.pageY) + "px")
+        }
+        var mouseleave = function(e, d) {
+            if (d.name) {
+                Tooltip
+                .style("opacity", 0)
+            }
+        }
+
+        function highlightGender() {
+
+            if (d3.select(this).attr('gender') == 'MULHERES' ) {
+
+                svg.selectAll('path.pathO').transition().duration(350).style('opacity', 0.2);
+
+                svg.selectAll('path.pathM').transition().duration(350).style('opacity', 0.2);
+
+            } else if (d3.select(this).attr('gender') == 'HOMENS' ) {
+
+                svg.selectAll('path.pathO').transition().duration(350).style('opacity', 0.2);
+
+                svg.selectAll('path.pathF').transition().duration(350).style('opacity', 0.2);
+
+            }
+        }
+
+        function unHighlightGender() {
+
+            if (d3.select(this).attr('gender') == 'MULHERES' ) {
+
+                svg.selectAll('path.pathO').transition().duration(350).style('opacity', 1);
+
+                svg.selectAll('path.pathM').transition().duration(350).style('opacity', 1);
+
+            } else if (d3.select(this).attr('gender') == 'HOMENS' ) {
+
+                svg.selectAll('path.pathO').transition().duration(350).style('opacity', 1);
+
+                svg.selectAll('path.pathF').transition().duration(350).style('opacity', 1);
+
+            }
+        }
+
+        // Three function that change the tooltip when user hover / move / leave a cell
+        var mouseoverKPI = function(e, d) {
+            Tooltip.transition().duration(300).ease(d3.easeCubic)
+                .style("opacity", 0.9)
+        }
+        var mousemoveKPI = function(e, d) {
+            Tooltip
+            .html(`${d[2]} ruas foram classificadas como referentes a ${d[5].toLowerCase()} (${percFormatDec(d[2]/P_count)})`)
+            .style("left", (e.pageX) + "px")
+            .style("top", (e.pageY + 30) + "px")
+        }
+        var mouseleaveKPI = function(e, d) {
+            Tooltip.transition().duration(300).ease(d3.easeCubic)
+                .style("opacity", 0)
+        }
+
+        // ****************** START APPENDING PATHS ****************
+
+        // append gray streets
+        const paths = svg.append('g').classed('map', true).selectAll('path.way').data(data)
+
+        paths.enter()
+            .append('path')
+                .classed('way', true)
+                .classed('pre-colored', true)
+                .attr('id', d=> d.id)
+                .attr('d', d => transformPathData(d.path_data))
+                .attr('stroke', cPathO)
+                .attr('fill', 'none')
+            // highlights
+            .on("mouseenter", handleMouseEnter)
+            .on("mouseout", handleMouseOut)
+            // tooltips
+            .on("mouseover", mouseover)
+            .on("mousemove", mousemove)
+            .on("mouseleave", mouseleave)
+
+        // append overlay that is used for highlight
+        svg.select('.map').append('rect')
+            .classed('overlay', true)
+            .attr('x', margin.left)
+            .attr('y', margin.top)
+            .attr('height', height / (1 - scalingFactor))
+            .attr('width', width / (1 - scalingFactor))
+            .attr('fill','rgba(255, 255, 255, 0.6)')
+            .style('pointer-events', 'none')
+
+
+
+        // control zoom
+        let zoom = d3.zoom()
+            .scaleExtent([1 - scalingFactor, 10])
+            .on('zoom', handleZoom);
+
+        function initZoom() {      
+            const transform = d3.zoomIdentity.translate(compensationX, compensationY).scale(1 - scalingFactor); // scaling factor helps adjusting paths within a decent distance between each other. This zooms out to show all area from beggining. Compensation is added to X adn Y to better position map after zoom
+
+            d3.select('svg')
+                .call(zoom).call(zoom.transform, transform);
+        }
+
+        function handleZoom(e) {
+            d3.select('g.map')
+                .attr('transform', e.transform);
+        }
+
+        initZoom();
+        
+
+        // define frame for map
+        // Define outer and inner rectangles for the frame path
+        const outerRect = `M 0,0 H ${width + margin.left + margin.right} V ${height + margin.top + margin.bottom} H 0 Z`;
+        const innerRect = `M ${margin.left},${margin.top} H ${margin.left + width} V ${margin.top + height} H ${margin.left} Z`;
+
+        // Combine paths to create the frame with transparent center
+        const framePath = `${outerRect} ${innerRect}`;
+
+        // Append the frame path to the SVG
+        svg.append('path')
+            .classed('frame', true)
+            .attr('d', framePath)
+            .attr('fill', 'white')
+            .attr('stroke', 'none')
+            .style('opacity', 0)
+            .attr('fill-rule', 'evenodd')
+            .style('cursor', 'default')
+
+
+        // chart and animations
+        // 'd' stands for duration | 't' for transition
+        const dDelayStart = 2000;
+        const dCirclesAdjust = 3000 ;
+        const dWaitToPlaceWays = 500;
+
+        const OneWayPlacementDuration = 1000;
+        
+        const dStartWayPlacement = dDelayStart + dCirclesAdjust + dWaitToPlaceWays
+
+        const msInBetweenPlacements = 2 / speedPlacement
+
+        const dMWayPlacement = M_count * msInBetweenPlacements // wait between each path placement is 2ms
+        const dFWayPlacement = F_count * msInBetweenPlacements // wait between each path placement is 2ms
+        const dWayPlacement = d3.max([dMWayPlacement, dFWayPlacement])
+
+        const dUntilPlacementEnd = dStartWayPlacement + dWayPlacement + OneWayPlacementDuration
+
+        const tCirclesAdjust = d3.transition()
+            .duration(dCirclesAdjust)
+            .ease(d3.easeCubic)
+
+        const tCirclesFade = d3.transition()
+            .ease(d3.easeLinear)    
+        
+        const tPlaceWays = d3.transition()
+            .ease(d3.easeCubicOut)
+
+        let sqrtScale = d3.scaleSqrt()
+            .domain([0, P_count])
+            .range([0,  chartRadius])
+
+
+        // circle charts
+        const circlesData = [[fChart.x, fChart.y, F_count, cPathF, dFWayPlacement, 'MULHERES'], [mChart.x, mChart.y, M_count, cPathM, dMWayPlacement, 'HOMENS']]
+
+        const circles = svg.selectAll('circle.chart').data(circlesData)
+
+        // circles start out as 50%
+        circles.enter().append('circle')
+            .classed('chart', true)
+            .attr('cx', d => d[0])
+            .attr('cy', d => d[1])
+            .attr('r', d => sqrtScale(P_count/2))
+            .attr('fill',  d => d[3])
+
+        // circles grow to actual proportion
+        svg.selectAll('circle.chart').transition(tCirclesAdjust).delay(dDelayStart)
+            .attr('r', d => sqrtScale(d[2]))
+
+        // move circles to zero while ways are placed
+        svg.selectAll('circle.chart').transition(tCirclesFade).duration(d => d[4]).delay(dStartWayPlacement)
+            .attr('r', d => sqrtScale(0))
+
+        const percFormat = d3.format('.0%')
+        const percFormatDec = d3.format('.1%')
+
+        const circlesText = svg.selectAll('text.chart').data(circlesData)
+
+        // circle charts label
+        circlesText.enter().append('text')
+            .classed('chart', true)
+            .classed('kpi', true)
+            .attr('gender', d => d[5])
+            .text(percFormat(0.5))
+            .attr('x', d => d[0])
+            .attr('y', d => d[1] - sqrtScale(P_count/2) - 8)
+            .attr('text-anchor', 'middle')
+            .style('font-size', `${chartLabelSize}pt`)
+            .style('cursor', 'default')
+
+        svg.selectAll('text.chart').transition(tCirclesAdjust).delay(dDelayStart)
+            .tween("text", function(d) {
+                var element = d3.select(this);
+                var i = d3.interpolate(0.5, d[2]/P_count); // tween with interpolate to transition text
+                return function(t) {
+                    element.text(percFormat( i(t) ));
+                };
+            })
+            .attr('y', d => d[1] - sqrtScale(d[2]) - 8)
+
+        // text moves down while circles get emptier while ways are placed
+        svg.selectAll('text.chart').transition(tCirclesFade).duration(d => d[4]).delay(dStartWayPlacement)
+            .attr('y', d => d[1] - 8)
+
+        // text grows to final KPI
+        svg.selectAll('text.chart')
+            .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+            .style('font-size', `${kpiTextSize}pt`)
+            .attr('y', d => d[1])
+            .style('cursor', 'pointer')
+
+        const circlesTextUnderline = svg.selectAll('line.chart').data(circlesData)
+
+        // kpi underline starts with no width
+        circlesTextUnderline.enter().append('line')
+            .classed('kpi', true)
+            .attr('gender', d => d[5])
+            .attr('x1', d => d[0])
+            .attr('x2', d => d[0])
+            .attr('y1', d => (device == 'mobile') ? d[1] + 10 :  d[1] + 16 )
+            .attr('y2', d => (device == 'mobile') ? d[1] + 10 :  d[1] + 16 )
+            .style('opacity', 1)
+            .attr('stroke', d => d[3])
+            .attr('stroke-width', '4px')
+
+        // kpi underline transitions to width
+        .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+            .style('opacity', 1)
+            .attr('x1', d => d[0] - kpiUnderlineSize/2)
+            .attr('x2', d => d[0] + kpiUnderlineSize/2)
+
+        const circlesTextLabel = svg.selectAll('line.chart').data(circlesData)
+
+        // kpi label is position differently depending on device type
+        circlesTextLabel.enter().append('text')
+            .classed('kpi', true)
+            .attr('gender', d => d[5])
+            .text(d => d[5])
+            .attr('x', d => d[0])
+            .attr('y', d => (device=='mobile') ? d[1] - kpiTextSize - 10 : d[1] + 24) // if mobile we place it above the kpi, otherwise below
+            .style('opacity', 0)
+            .attr('alignment-baseline', (device=='mobile') ? 'baseline' :'hanging')
+            .attr('font-size', (device=='mobile') ? '8pt' :'11pt')
+            .attr('text-anchor', 'middle')
+            .style('fill', '#929292')
+
+        // kpi label revealed
+        .transition().ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+            .style('opacity', 1)
+
+        
+        // add footer
+        const footer = svg.append('foreignObject');
+        footer
+            .attr('x', 30)
+            .attr('y', margin.top + height)
+            .attr("width", width + margin.right)
+            .attr("height", margin.bottom )
+        .append("xhtml:div") // Use xhtml namespace
+            .classed('footer', true)
+            .html('<span>Visualização criada por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> inspirada no trabalho de <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a></span>') 
+            .style('opacity', 1)
+        // .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+        //     .style('opacity', 1)
+            
+        // colored streets
+        // we first create the path for other names as those will be placed below the male/female. This will only be turned to visible after all placement is done
+        const pathO = svg.select('g').selectAll('path.map.pathO').data(O)
+
+        pathO.enter().append('path')
+            .classed('way', true)
+            .classed('colored', true)
+            .classed('pathO', true)
+            .attr('d', d => transformPathData(d.path_data))
+            .attr('stroke', cPathO)
+            .attr('fill', 'none')
+            .style('opacity', 0)
+
+        // add colored paths men
+        const pathM = svg.select('g').selectAll('path.map.pathM').data(M)
+
+        pathM.enter().append('path')
+            .classed('way', true)
+            .classed('colored', true)
+            .classed('pathM', true)
+            .attr('d', d => transformPathData(d.path_data))
+            .attr('stroke', cPathM)
+            .attr('fill', 'none')
+            .style('opacity', 0)
+            /* functions below are prior to map scaling */
+            // .attr('transform', (d, i) => `translate( ${translatePathToStartingPoint(transformPathData(d.path_data), mChart.x + ((device == 'desktop')? sqrtScale(M_count) - sqrtScale(i+1) : 0), mChart.y + ((device == 'mobile')? sqrtScale(M_count) - sqrtScale(i+1) : 0)) })`) // origin in the edge of the circle reducing as circle reduces
+            // .attr('transform', d => `translate( ${translatePathToStartingPoint(transformPathData(d.path_data), mChart.x, mChart.y) })`) // origin in the center of the circle
+            /* functions below are post map scaling logic */
+            .attr('transform', (d, i) => `translate( ${translatePathToStartingPoint(transformPathData(d.path_data), (mChart.x - compensationX + ((device == 'desktop')? sqrtScale(M_count) - sqrtScale(i+1) : 0)) / (1 - scalingFactor), (mChart.y - compensationY + ((device == 'mobile')? sqrtScale(M_count) - sqrtScale(i+1) : 0)) / (1 - scalingFactor) ) })`) // origin in the edge of the circle reducing as circle reduces
+            // .attr('transform', (d, i) => `translate( ${translatePathToStartingPoint(transformPathData(d.path_data), (mChart.x - compensationX) / (1-scalingFactor), (mChart.y - compensationY) / (1 - scalingFactor) ) })`) // origin in the center of the circle
+
+        svg.selectAll('path.pathM').transition(tPlaceWays).duration(OneWayPlacementDuration)
+            .delay((d, i)=>{
+                svg.select(`.pre-colored[id='${d.id}']`).transition().duration(30).attr('opacity',0).delay(dStartWayPlacement + OneWayPlacementDuration + (i * (msInBetweenPlacements))) // remove gray path once colored one is placed
+                return dStartWayPlacement + (i * (msInBetweenPlacements))  // 2 ms distance between path start moving
+            })
+            .attr('d', d => transformPathData(d.path_data))
+            .style('opacity', 1)
+            .attr('transform',`translate( 0, 0)`)
+
+        // add colored paths women
+        const pathF = svg.select('g').selectAll('path.map.pathF').data(F)
+
+        pathF.enter().append('path')
+            .classed('way', true)
+            .classed('colored', true)
+            .classed('pathF', true)
+            .attr('d', d => transformPathData(d.path_data))
+            .attr('stroke', cPathF)
+            .attr('fill', 'none')
+            .style('opacity', 0)
+            .attr('transform', (d, i)=> `translate( ${translatePathToStartingPoint(transformPathData(d.path_data), (fChart.x - compensationX) / (1 - scalingFactor), (fChart.y - compensationY) / (1 - scalingFactor)) })`) // origin in the edge of the circle reducing as circle reduces
+            // .attr('transform', (d, i)=> `translate( ${translatePathToStartingPoint(transformPathData(d.path_data), fChart.x + ((device == 'desktop')? sqrtScale(F_count) - sqrtScale(i+1) : 0), fChart.y + ((device == 'mobile')? sqrtScale(F_count) - sqrtScale(i+1) : 0)) })`) // origin in the edge of the circle reducing as circle reduces
+
+
+        svg.selectAll('path.pathF').transition(tPlaceWays).duration(OneWayPlacementDuration)
+            .delay((d, i)=>{
+                svg.select(`.pre-colored[id='${d.id}']`).transition().duration(0).attr('opacity',0).delay(dStartWayPlacement + OneWayPlacementDuration + (i * (msInBetweenPlacements))) // remove gray path once colored one is placed
+                return dStartWayPlacement + (i * (msInBetweenPlacements)) // 2 ms distance between path start moving
+            })
+            .attr('d', d => transformPathData(d.path_data))
+            .style('opacity', 1)
+            .attr('transform',`translate( 0, 0)`)
+            
+            
+        svg.selectAll('path.colored')
+        // highlight
+            .on("mouseenter", handleMouseEnter)
+            .on("mouseout", handleMouseOut)
+        // tooltips
+            .on("mouseover", mouseover)
+            .on("mousemove", mousemove)
+            .on("mouseleave", mouseleave)
+        
+
+        // once it is over placing the paths, it remove the pre-colored ones, make the others visible instead, make frame visible and add highlight action to kpis
+        sleep(dUntilPlacementEnd).then(() => {
+            
+            svg.selectAll('path.pathO')
+                .style('opacity', 1)
+                
+            svg.selectAll('path.pre-colored').remove()
+
+            
+            svg.select('.frame').transition().duration(2000).ease(d3.easeCubic)
+                .style('opacity', 0.8)
+
+            svg.selectAll('.kpi')    
+            // highlight
+                .on("mouseenter", highlightGender)
+                .on("mouseout", unHighlightGender)
+            // tooltips
+                .on("mouseover", mouseoverKPI)
+                .on("mousemove", mousemoveKPI)
+                .on("mouseleave", mouseleaveKPI)
+                
+        })
+    }
+
+}
+
+// Function to transform path data to a new starting coordinate
+function translatePathToStartingPoint(pathData, newX, newY) {
+    try{
+        // Parse the path data to find the starting coordinate
+        const match = pathData.match(/([ML])\s*([-\d.]+),([-\d.]+)/);
+        if (!match) {
+            throw new Error('Invalid path data');
+        }
+        
+        // Current starting coordinates
+        const startX = parseFloat(match[2]);
+        const startY = parseFloat(match[3]);
+        
+        // Calculate the translation offsets
+        const dx = newX - startX;
+        const dy = newY - startY;
+        
+        return `${dx}, ${dy}`;
+    } catch (error) {
+        console.error('Error fetching or parsing the CSV file:', error);
+}
+}
+
+const sleep = (milliseconds) => {
+    return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+
+function getCity() {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString)
+        return urlParams.get('city')
+    }
+
+// Load the script dynamically with the callback
+loadScript(`config/${getCity()}.js`, scriptLoaded);
+</script>
+</html>
