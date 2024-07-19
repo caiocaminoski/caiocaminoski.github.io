@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Igualdade de Genero nas ruas</title>
+    <!-- <title>Igualdade de Genero nas ruas</title> -->
+    <title>Street gender equality</title>
     <style>
             /* loader */
     #loader-overlay {
@@ -55,6 +56,14 @@
         }
     }
 
+    .lang-container {
+        display: none;
+    }
+
+    .lang-container.active {
+        display: block;
+    }
+
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
 </head>
@@ -68,8 +77,17 @@
         </div>
     </div>
     
-    <h2 id="title" class="hidden">Analisando igualdade de gênero nas ruas de <span id="city"></span></h2>
-    <p id="description" class="hidden"> Entre os <span id="total-street-names"></span> nomes de ruas analisados, <span id="total-streets-people"></span> foram classificados como pertencendo a <span id="women-text">mulheres</span> ou <span id="men-text">homens</span>. Entre estes:</p>
+    
+    <div id="en" class="lang-container active" lang="en">
+        <h2 id="title-en" class="hidden">Analyzing gender equality in the streets of <span id="city-en"></span> - Brazil</h2>
+        <p id="description-en" class="hidden"> From <span id="total-street-names-en"></span> street names analyzed, <span id="total-streets-people-en"></span> were classified as being after a <span id="women-text-en">woman</span> or a <span id="men-text-en">man</span>. Out of which:</p>
+    </div>
+
+    <div id="pt" class="lang-container" lang="pt">
+        <h2 id="title-pt" class="hidden">Analisando igualdade de gênero nas ruas de <span id="city-pt"></span></h2>
+        <p id="description-pt" class="hidden"> Entre os <span id="total-street-names-pt"></span> nomes de ruas analisados, <span id="total-streets-people-pt"></span> foram classificados como pertencendo a <span id="women-text-pt">mulheres</span> ou <span id="men-text-pt">homens</span>. Entre estes:</p>
+    </div>
+
     <div id="container" class="hidden"></div>
     
 
@@ -163,7 +181,9 @@ import * as d3 from "https://cdn.skypack.dev/d3@7"
 // import { csv } from "https://cdn.skypack.dev/d3-fetch@3";
 
 
+
 const city = getCity() ?? 'curitiba' // if no city is declared, it falls back to Curitiba
+
 
 // Function to import script variables 
 function loadVariables(varPath) {
@@ -223,6 +243,16 @@ function createViz(data) {
     var chartLabelSize;
     var kpiTextSize;
     var kpiUnderlineSize;
+    var fName;
+    var mName;
+
+    if (language === 'pt') {
+        fName = 'MULHERES'
+        mName = 'HOMENS'
+    } else {
+        fName = 'WOMEN'
+        mName = 'MEN'
+    }
 
     // ***** variables for small devices
     if ( window.innerWidth < 992 ) {
@@ -295,13 +325,13 @@ function createViz(data) {
     const numFormat = d3.format(".0f")
 
     // adding variables to title and description
-    d3.select("#total-street-names").text(numFormat(Object.keys(ALL_Names).length));
-    d3.select("#total-streets-people").text(numFormat(P_count));
-    d3.select("#city").text(cityName);
+    d3.select(`#total-street-names-${language}`).text(numFormat(Object.keys(ALL_Names).length));
+    d3.select(`#total-streets-people-${language}`).text(numFormat(P_count));
+    d3.select(`#city-${language}`).text(cityName);
 
     // Reveal the title and desc after updating the text
-    d3.select("#title").classed("hidden", false);
-    d3.select("#description").classed("hidden", false);
+    d3.select(`#title-${language}`).classed("hidden", false);
+    d3.select(`#description-${language}`).classed("hidden", false);
 
     // creating svg
     const svg = d3.select('#container').append('svg')
@@ -309,12 +339,12 @@ function createViz(data) {
         .attr('width', width + margin.left + margin.right)
 
     // adjust color of text in description
-    d3.select('#men-text')
-        .attr('gender', 'MULHERES')
+    d3.select(`#men-text-${language}`)
+        .attr('gender', fName)
         .style('color', cPathM)
 
-    d3.select('#women-text')
-        .attr('gender', 'HOMENS')
+    d3.select(`#women-text-${language}`)
+        .attr('gender', mName)
         .style('color', cPathF)
 
     const lonRange = maxLon - minLon;
@@ -440,11 +470,11 @@ function createViz(data) {
 
     function highlightGender() {
 
-        if (d3.select(this).attr('gender') == 'MULHERES' ) {
+        if (d3.select(this).attr('gender') == fName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 0.2);
             svg.selectAll('path.pathM').transition().duration(350).style('opacity', 0.2);
 
-        } else if (d3.select(this).attr('gender') == 'HOMENS' ) {
+        } else if (d3.select(this).attr('gender') == mName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 0.2);
             svg.selectAll('path.pathF').transition().duration(350).style('opacity', 0.2);
 
@@ -453,11 +483,11 @@ function createViz(data) {
 
     function unHighlightGender() {
 
-        if (d3.select(this).attr('gender') == 'MULHERES' ) {
+        if (d3.select(this).attr('gender') == fName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 1);
             svg.selectAll('path.pathM').transition().duration(350).style('opacity', 1);
 
-        } else if (d3.select(this).attr('gender') == 'HOMENS' ) {
+        } else if (d3.select(this).attr('gender') == mName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 1);
             svg.selectAll('path.pathF').transition().duration(350).style('opacity', 1);
 
@@ -469,9 +499,12 @@ function createViz(data) {
         Tooltip.transition().duration(300).ease(d3.easeCubic)
             .style("opacity", 0.9)
     }
+
     var mousemoveKPI = function(e, d) {
         Tooltip
-        .html(`<b>${d[2]}</b> ruas foram classificadas como referentes a <b><span style="color: ${d[3]}">${d[5].toLowerCase()}</span></b> (${percFormatDec(d[2]/P_count)}) ${(device == 'desktop') ? '<br><small>(Clique para esconder essa mensagem)</small>' : ''} `)
+        .html((language === 'pt') ? 
+            `<b>${d[2]}</b> ruas foram classificadas como referentes a <b><span style="color: ${d[3]}">${d[5].toLowerCase()}</span></b> (${percFormatDec(d[2]/P_count)}) ${(device == 'desktop') ? '<br><small>(Clique para esconder essa mensagem)</small>' : ''} `
+            :`<b>${d[2]}</b> streets were classified as named after <b><span style="color: ${d[3]}">${d[5].toLowerCase()}</span></b> (${percFormatDec(d[2]/P_count)}) ${(device == 'desktop') ? '<br><small>(clike here to hide this message)</small>' : ''} `)
         .style("left", (e.pageX) + "px")
         .style("top", (e.pageY + 30) + "px")
     }
@@ -591,7 +624,7 @@ function createViz(data) {
 
 
     // circle charts
-    const circlesData = [[fChart.x, fChart.y, F_count, cPathF, dFWayPlacement, 'MULHERES'], [mChart.x, mChart.y, M_count, cPathM, dMWayPlacement, 'HOMENS']]
+    const circlesData = [[fChart.x, fChart.y, F_count, cPathF, dFWayPlacement, fName], [mChart.x, mChart.y, M_count, cPathM, dMWayPlacement, mName]]
 
     const circles = svg.selectAll('circle.chart').data(circlesData)
 
@@ -698,7 +731,9 @@ function createViz(data) {
         .attr("height", margin.bottom )
     .append("xhtml:div") // Use xhtml namespace
         .classed('footer', true)
-        .html('<span>Visualização criada por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspirada no trabalho de <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>.</span>') 
+        .html((language === 'pt') ? 
+            '<span>Criado por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspirado no trabalho de <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>.</span>'
+            :'<span>Created by <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspired by the work of <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>.</span>')  
         .style('opacity', 1)
     // .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
     //     .style('opacity', 1)
@@ -874,6 +909,45 @@ function hideLoader() {
 }
 
 
+function setLanguage(language) {
+
+    // Update the document title based on the selected language
+    if (language === 'pt') {
+        document.title = "Igualdade nas ruas";
+    } else {
+        document.title = "Street gender equality";
+        language = 'en'; // if language is not portuguese it falls back to english
+    }
+
+    // Hide all lang-container
+    document.querySelectorAll('.lang-container').forEach(div => {
+        div.classList.remove('active');
+    });
+
+    // Show the selected language lang-container
+    document.getElementById(language).classList.add('active');
+
+    return language
+}
+
+function getUrlLang() {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString)
+        return urlParams.get('lang')
+    }
+
+
+var language;
+
+const urlLang = getUrlLang();
+const userLang = navigator.language || navigator.userLanguage; 
+
+// if language is set as pt in url or language browser is pt, it sets global language as pt, otherwise it falls back to en
+if (urlLang === 'pt' || userLang.startsWith("pt")) {
+    language = setLanguage('pt');
+} else {
+    language = setLanguage('en');
+}
 
 importResources(`config/${city}.js`, `data/${city}.csv`).then((data) => {createViz(data)});
 
