@@ -12,3 +12,5 @@ var compensationXDesktop = 160;  // for desktop view it may be needed to add a c
 var compensationYMobile = 40; // for mobile view it may be needed to add a compensation if scaling factor is set to >0
 
 var speedPlacement = 1;
+
+var animationEnabled = 1;
