@@ -4,211 +4,139 @@
 <head>
     <meta charset="UTF-8">
     <title></title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-    </style>
-</head>
-
-<body>
-
-    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
 
         body {
             font-family: Arial, sans-serif;
             background-color: #fffefe;
-            margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            
+            height: 100%;
         }
-
-        span, div, label {
-            margin-bottom: 15px;
-        }
-
-        /* span {
-            display: flex;
-            /* margin-bottom: 20px; */
         
-
-        /* label {
-            display:flex;
-            margin-top: 10px;
-        } */
-
-        /* .hover-form {
-            display: none;
-            background: #fff;
+        .form-container {
+            background-color: #f9f9f9;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 100%;
-        } */
-
-        /* body:hover .hover-form,
-        .hover-form:hover {
-            display: block;
-        } */
-
-        /* .form-element {
-            margin-bottom: 15px;
-        } */
-
-        /* .form-element span {
-            margin-bottom: 15px;
-        } */
-
-/* 
-        .radio-buttons {
-            display: flex;
-            flex-direction: column;
-        } */
-
-
-        /* .radio-buttons label {
-            margin-bottom: 5px;
-            display: flex;
-        } */
-
-
-
-        input[type="text"],
-        textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            height: 100%;
+            max-width: 600px; /* Optional: to control the max width of the form */
+            background-color: white;
+            /* border: none; */
+            box-shadow: none;
         }
 
-        .radio-button-container {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-        }
-        
-        .radio-buttons label span {
-            font-weight: lighter;
-            font-size: small;
-        }
-
-        button[type="submit"] {
-            /* background-color: #789480; */
-            background-color: #229ecb;
-            color: #fff;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s ease-in-out;
-        }
-
-        button[type="submit"]:hover {
-            /* background-color: #3c4940; */
-            background-color: #D85727;
-        }
 
         .hidden {
             display: none;
         }
 
         #street-name-title {
-            font-size: larger;
+            font-size: 24px;
             font-weight: bold;
-        }
-
-        /* Additional styling for disabled radio button labels */
-        .disabled {
-            color: #aaa;
-            cursor: not-allowed;
-        }
-        
-        textarea {
-            background-color: white;
-            resize: vertical;
-            
+            margin-bottom: 20px;
         }
 
         #F-correct {
             accent-color: #D85727;
         }
-        
+
         #M-correct {
-            /* accent-color: #27A8D8; */
             accent-color: #229ecb;
         }
 
         #O-correct {
             accent-color: gray;
         }
+
+        .disabled {
+            color: #aaa;
+            text-decoration: line-through;
+        }
+
+        button[type="submit"] {
+            background-color: #229ecb;
+            border: none;
+            transition: all 0.3s ease-in-out;
+            height: 36px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #D85727;
+        }
+
     </style>
+</head>
+<body>
 
-    <form
-        action="https://docs.google.com/forms/d/e/1FAIpQLSe8d9h7pOgP_Y6oLZ439w-pBMBMK7cBsPtB8taH5y8eitlSTw/formResponse"
-        method="post">
+    <div class="container h-100 d-flex justify-content-center align-items-center">
+        <div class="form-container">
+            <form action="https://docs.google.com/forms/d/e/1FAIpQLSe8d9h7pOgP_Y6oLZ439w-pBMBMK7cBsPtB8taH5y8eitlSTw/formResponse" method="post">
+                <div id="street-name-title">test</div>
 
-        <div id="street-name-title">test</div>
+                <div class="form-group hidden">
+                    <label for="city-form">Cidade</label>
+                    <input type="text" class="form-control" name="entry.790229745" id="city-form">
+                </div>
 
-        <div class="form-element hidden">
-            <span>Cidade</span>
-            <input type="text" name="entry.790229745" id="city-form">
+                <div class="form-group hidden">
+                    <label for="street-id-form">ID Rua</label>
+                    <input type="text" class="form-control" name="entry.216859079" id="street-id-form">
+                </div>
+
+                <div class="form-group hidden">
+                    <label for="street-name-form">Rua</label>
+                    <input type="text" class="form-control" name="entry.1578868536" id="street-name-form">
+                </div>
+
+                <div class="form-group radio-buttons hidden">
+                    <label>Qual a classificação atual?</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="entry.1057288211" id="M-current" value="M">
+                        <label class="form-check-label" for="M-current">Homem</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="entry.1057288211" id="F-current" value="F">
+                        <label class="form-check-label" for="F-current">Mulher</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="entry.1057288211" id="O-current" value="O">
+                        <label class="form-check-label" for="O-current">Outro</label>
+                    </div>
+                </div>
+
+                <div class="form-group radio-buttons">
+                    <label>Qual seria a classificação correta?</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="entry.2055427973" id="M-correct" value="M" required>
+                        <label class="form-check-label" for="M-correct">Homem</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="entry.2055427973" id="F-correct" value="F">
+                        <label class="form-check-label" for="F-correct">Mulher</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="entry.2055427973" id="O-correct" value="O">
+                        <label class="form-check-label" for="O-correct">Outro</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="comment">Comentário (opcional)</label>
+                    <textarea class="form-control" name="entry.152395503" rows="5" id="comment"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Enviar</button>
+            </form>
         </div>
-        <div class="form-element hidden">
-            <span>ID Rua</span>
-            <input type="text" name="entry.216859079" id="street-id-form">
-        </div>
-        <div class="form-element hidden">
-            <span>Rua</span>
-            <input type="text" name="entry.1578868536" id="street-name-form">
-        </div>
-
-        <div class="form-element radio-buttons hidden">
-            <span>Qual a classificação atual?</span>
-            <div class="radio-button-container">
-                <label for="M-current">
-                    <input type="radio" name="entry.1057288211" id="M-current" value="M">
-                    <span>Homem</span>
-                </label>
-                <label for="F-current">
-                    <input type="radio" name="entry.1057288211" id="F-current" value="F">
-                    <span>Mulher</span>
-                </label>
-                <label for="O-current">
-                    <input type="radio" name="entry.1057288211" id="O-current" value="O">
-                    <span>Outro</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="form-element radio-buttons">
-            <div>Qual seria a classificação correta?</div>
-            <div class="radio-button-container">
-                <label for="M-correct">
-                    <input type="radio" name="entry.2055427973" id="M-correct" value="M" required>
-                    <span>Homem</span>
-                </label>
-                <label for="F-correct">
-                    <input type="radio" name="entry.2055427973" id="F-correct" value="F">
-                    <span>Mulher</span>
-                </label>
-                <label for="O-correct">
-                    <input type="radio" name="entry.2055427973" id="O-correct" value="O">
-                    <span>Outro</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="form-element">
-            <span>Comentário (opcional)</span>
-            <textarea name="entry.152395503" rows="5"></textarea>
-        </div>
-
-        <button type="submit">Enviar</button>
-    </form>
-
+    </div>
 
 
     <script>
@@ -228,9 +156,9 @@
         // const cityName = 'Curitiba'
         // const currentCategory = 'F'
 
-
+        const currentCategoryLong = (currentCategory == 'M') ? 'Homem' : ((currentCategory == 'F') ? 'Mulher' : 'Outro')
         // prepare form
-        document.getElementById('street-name-title').innerHTML = streetName
+        document.getElementById('street-name-title').innerHTML = `${streetName} (${currentCategoryLong})`
 
         const cityForm = document.getElementById('city-form')
         cityForm.value = cityName

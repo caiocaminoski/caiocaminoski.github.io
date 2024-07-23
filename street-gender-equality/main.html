@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -87,6 +87,49 @@
             background-color: #f0f0f0;
         }
 
+        /* Popup container for form */
+        #popupContainer {
+            display: none;
+            position: fixed;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        #hideForm {
+            display: none;
+            position: fixed;
+            top: 5%;
+            left: 80%;  
+            z-index: 1001;
+            width: 10%;
+            height: 36px;
+            border: none;
+            background-color: transparent;
+            text-align: right;
+            padding-right: 10px;
+            color:white
+        }
+        #popupContainer iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #popupOverlay {
+            display: none; /* Initially hidden */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
 
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
@@ -108,6 +151,12 @@
         </ul>
     </div>
     
+    <div id="popupOverlay" onclick="MyGlobalFunctions.hidePopup()"></div>
+    <button id="hideForm" onclick="MyGlobalFunctions.hidePopup()">✖</button>
+    <div id="popupContainer">
+        <iframe id="popupIframe" src=""></iframe>
+    </div>
+
     <div id="en" class="lang-container active" lang="en">
         <h2 id="title-en" class="hidden">Analyzing gender equality in the streets of <span id="city-en"></span> - Brazil</h2>
         <p id="description-en" class="hidden"> From <span id="total-street-names-en"></span> street names analyzed, <span id="total-streets-people-en"></span> were classified as being after a <span id="women-text-en">woman</span> or a <span id="men-text-en">man</span>. Out of which:</p>
@@ -120,7 +169,6 @@
 
     <div id="container" class="hidden"></div>
     
-
 </body>
 <style>
 
@@ -199,22 +247,22 @@
 </style>
 <script type="module">
 // import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"
-import * as d3 from "https://cdn.skypack.dev/d3@7"
-// import { select, selectAll } from "https://cdn.skypack.dev/d3-selection@3";
-// import { csvParse } from "https://cdn.skypack.dev/d3-dsv@3";
-// import { scaleLinear, scaleSqrt } from "https://cdn.skypack.dev/d3-scale@4";
-// import { zoom } from "https://cdn.skypack.dev/d3-zoom@3";
-// import { transition } from "https://cdn.skypack.dev/d3-transition@3";
-// import { format, formatDefaultLocale, formatLocale } from "https://cdn.skypack.dev/d3-format@3";
-// import {interpolate} from "https://cdn.skypack.dev/d3-interpolate@3";
-// import { easeCubic, easeLinear, easeCubicOut} from "https://cdn.skypack.dev/d3-ease@3";
-// import { csv } from "https://cdn.skypack.dev/d3-fetch@3";
-
-
+// import * as d3 from "https://cdn.skypack.dev/d3@7"
+import { select, selectAll } from "https://cdn.skypack.dev/d3-selection@3";
+import { csvParse } from "https://cdn.skypack.dev/d3-dsv@3";
+import { scaleLinear, scaleSqrt } from "https://cdn.skypack.dev/d3-scale@4";
+import { zoom, zoomIdentity } from "https://cdn.skypack.dev/d3-zoom@3";
+import { transition } from "https://cdn.skypack.dev/d3-transition@3";
+import { format, formatDefaultLocale, formatLocale } from "https://cdn.skypack.dev/d3-format@3";
+import {interpolate} from "https://cdn.skypack.dev/d3-interpolate@3";
+import { easeCubic, easeLinear, easeCubicOut} from "https://cdn.skypack.dev/d3-ease@3";
+import { csv } from "https://cdn.skypack.dev/d3-fetch@3";
+import {max} from "https://cdn.jsdelivr.net/npm/d3-array@3/+esm";
 
 const city = getCity() ?? 'curitiba' // if no city is declared, it falls back to Curitiba
 
 var paramForm;
+const isDarkMode = detectDarkMode()
 
 // Function to import script variables 
 function loadVariables(varPath) {
@@ -227,6 +275,42 @@ function loadVariables(varPath) {
     });
 }
 
+
+
+
+window.MyGlobalFunctions = {
+    // showPopup: function(paramForm) {
+    //     const iframe = document.getElementById('popupIframe');
+    //     const src = 'form.html';
+    //     // const src = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`;
+    //     iframe.src = src;
+
+    //     document.getElementById('popupContainer').style.display = 'block';
+    //     document.getElementById('popupOverlay').style.display = 'block';
+    // },
+    hidePopup: function() {
+        document.getElementById('hideForm').style.display = 'none';
+        document.getElementById('popupContainer').style.display = 'none';
+        document.getElementById('popupOverlay').style.display = 'none';
+    }
+}
+
+function showPopup(paramForm) {
+    const iframe = document.getElementById('popupIframe');
+    const src = paramForm;
+    // const src = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`;
+    iframe.src = src;
+    
+    document.getElementById('hideForm').style.display = 'block';
+    document.getElementById('popupContainer').style.display = 'block';
+    document.getElementById('popupOverlay').style.display = 'block';
+}
+
+// function hidePopup() {
+//     document.getElementById('popupContainer').style.display = 'none';
+//     document.getElementById('popupOverlay').style.display = 'none';
+// }
+
 // function to import data
 async function loadData(dataPath) {
     try {
@@ -237,7 +321,7 @@ async function loadData(dataPath) {
         const csvText = await response.text();
 
         // Parse CSV data using d3-dsv
-        const data_input = d3.csvParse(csvText);
+        const data_input = csvParse(csvText);
 
         const data = data_input.map((d, i)=>{
             return {
@@ -347,35 +431,36 @@ function createViz(data) {
     const P_count = M_count + F_count
     const O_count = Object.keys(O).length
 
-    // var customLocale = d3.formatLocale({
+    // var customLocale = formatLocale({
     //             decimal: ",",
     //             thousands: ".",
     //             grouping: [3],  // Grouping by thousands
     //             currency: ["€", ""]
     //         });
-    // d3.formatDefaultLocale(customLocale);
-    const numFormat = d3.format(".0f")
+    // formatDefaultLocale(customLocale);
+    const numFormat = format(".0f")
 
     // adding variables to title and description
-    d3.select(`#total-street-names-${language}`).text(numFormat(Object.keys(ALL_Names).length));
-    d3.select(`#total-streets-people-${language}`).text(numFormat(P_count));
-    d3.select(`#city-${language}`).text(cityName);
+    select(`#total-street-names-${language}`).text(numFormat(Object.keys(ALL_Names).length));
+    select(`#total-streets-people-${language}`).text(numFormat(P_count));
+    select(`#city-${language}`).text(cityName);
 
     // Reveal the title and desc after updating the text
-    d3.select(`#title-${language}`).classed("hidden", false);
-    d3.select(`#description-${language}`).classed("hidden", false);
+    select(`#title-${language}`).classed("hidden", false);
+    select(`#description-${language}`).classed("hidden", false);
 
     // creating svg
-    const svg = d3.select('#container').append('svg')
+    const svg = select('#container').append('svg')
         .attr('height', height + margin.top + margin.bottom)
-        .attr('width', width + margin.left + margin.right)
+        .attr('width', width + margin.left + margin.right)            
+        .on("contextmenu", function (event) {event.preventDefault();})
 
     // adjust color of text in description
-    d3.select(`#men-text-${language}`)
+    select(`#men-text-${language}`)
         .attr('gender', fName)
         .style('color', cPathM)
 
-    d3.select(`#women-text-${language}`)
+    select(`#women-text-${language}`)
         .attr('gender', mName)
         .style('color', cPathF)
 
@@ -396,14 +481,14 @@ function createViz(data) {
 
     if (mapAspectRatio > aspectRatio) {
         // The map is wider than the container
-        scaleX = d3.scaleLinear()
+        scaleX = scaleLinear()
         .domain([minLon, maxLon - fractionLonRang])
         .range([margin.left, margin.left + width]);
 
         const adjustedHeight = width / mapAspectRatio;
         const offsetY = (height - adjustedHeight) / 2;
 
-        scaleY = d3.scaleLinear()
+        scaleY = scaleLinear()
         .domain([minLat + fractionLatRang, maxLat])
         .range([margin.top + adjustedHeight + offsetY, margin.top + offsetY]);
     } else {
@@ -414,14 +499,14 @@ function createViz(data) {
         var offsetXLeft = offsetXTotal / 2;
         var offsetXRight = offsetXTotal / 2;
 
-        scaleX = d3.scaleLinear()
+        scaleX = scaleLinear()
         .domain([minLon, maxLon - fractionLonRang])
         // .range([margin.left, margin.left + adjustedWidth]); // map oriented to the left
         // .range([margin.left + offsetXLeft, margin.left + adjustedWidth + offsetXRight]);  // map centered
         .range([margin.left + ((device == 'mobile') ? offsetXLeft : 0), margin.left + adjustedWidth + ((device == 'mobile') ? offsetXRight : 0)]);  // if it is a mobile it is adjusted to the center, otherwise it stays oriented right
     
         // The map is taller than the container
-        scaleY = d3.scaleLinear()
+        scaleY = scaleLinear()
         .domain([minLat + fractionLatRang, maxLat])
         .range([margin.top + height, margin.top]);
 
@@ -449,8 +534,8 @@ function createViz(data) {
         // create copy of the hovered item on top of the overlay
         svg.select('.map').append('path')
             .attr('id', 'hovered')
-            .attr('d', d3.select(this).attr('d'))
-            .attr('stroke', d3.select(this).attr('stroke'))
+            .attr('d', select(this).attr('d'))
+            .attr('stroke', select(this).attr('stroke'))
             .style('fill', 'none')
             .style('pointer-events', 'none')
 
@@ -468,7 +553,7 @@ function createViz(data) {
 
     // Tooltip
     // create a tooltip
-    var Tooltip = d3.select("#container")
+    var Tooltip = select("#container")
         .append("div")
         .style("opacity", 0)
         .attr("class", "tooltip")
@@ -502,11 +587,11 @@ function createViz(data) {
 
     function highlightGender() {
 
-        if (d3.select(this).attr('gender') == fName ) {
+        if (select(this).attr('gender') == fName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 0.2);
             svg.selectAll('path.pathM').transition().duration(350).style('opacity', 0.2);
 
-        } else if (d3.select(this).attr('gender') == mName ) {
+        } else if (select(this).attr('gender') == mName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 0.2);
             svg.selectAll('path.pathF').transition().duration(350).style('opacity', 0.2);
 
@@ -515,11 +600,11 @@ function createViz(data) {
 
     function unHighlightGender() {
 
-        if (d3.select(this).attr('gender') == fName ) {
+        if (select(this).attr('gender') == fName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 1);
             svg.selectAll('path.pathM').transition().duration(350).style('opacity', 1);
 
-        } else if (d3.select(this).attr('gender') == mName ) {
+        } else if (select(this).attr('gender') == mName ) {
             svg.selectAll('path.pathO').transition().duration(350).style('opacity', 1);
             svg.selectAll('path.pathF').transition().duration(350).style('opacity', 1);
 
@@ -528,7 +613,7 @@ function createViz(data) {
 
     // Three function that change the tooltip when user hover / move / leave a cell
     var mouseoverKPI = function(e, d) {
-        Tooltip.transition().duration(300).ease(d3.easeCubic)
+        Tooltip.transition().duration(300).ease(easeCubic)
             .style("opacity", 0.9)
     }
 
@@ -541,13 +626,25 @@ function createViz(data) {
         .style("top", (e.pageY + 30) + "px")
     }
     var mouseleaveKPI = function(e, d) {
-        Tooltip.transition().duration(300).ease(d3.easeCubic)
+        Tooltip.transition().duration(300).ease(easeCubic)
             .style("opacity", 0)
     }
 
     var mouseclickKPI = function(e, d) {
-        Tooltip.transition().duration(300).ease(d3.easeCubic)
+        Tooltip.transition().duration(300).ease(easeCubic)
             .style("opacity", 0)
+    }
+
+    var openContextMenu = function() {
+        const streetData = event.srcElement.__data__
+
+        const streetName = (streetData.name) ? streetData.name : '**** SEM NOME ****';
+
+        paramForm = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`
+
+        contextMenu.style("display", "block")
+            .style("left", `${event.pageX}px`)
+            .style("top", `${event.pageY}px`);
     }
     
     // we initialize the map so it is rendered below kpis
@@ -560,7 +657,7 @@ function createViz(data) {
         .attr('y', margin.top)
         .attr('height', height / (1 - scalingFactor))
         .attr('width', width / (1 - scalingFactor))
-        .attr('fill','rgba(255, 255, 255, 0.6)')
+        .attr('fill', (isDarkMode === 0) ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)')
         .style('pointer-events', 'none')
 
     // define frame for map (it needs to come before KPIs so they sit on top of it)
@@ -575,7 +672,7 @@ function createViz(data) {
     svg.append('path')
         .classed('frame', true)
         .attr('d', framePath)
-        .attr('fill', 'white')
+        .attr('fill',(isDarkMode === 0) ? 'rgba(255, 255, 255)' : 'rgba(0, 0, 0)')
         .attr('stroke', 'none')
         .style('opacity', 0)
         .attr('fill-rule', 'evenodd')
@@ -595,23 +692,23 @@ function createViz(data) {
 
     const msInBetweenPlacements = 2 / speedPlacement
 
-    const dMWayPlacement = M_count * msInBetweenPlacements // wait between each path placement is 2ms
-    const dFWayPlacement = F_count * msInBetweenPlacements // wait between each path placement is 2ms
-    const dWayPlacement = d3.max([dMWayPlacement, dFWayPlacement])
+    const dMWayPlacement = (animationEnabled == 1) ? M_count * msInBetweenPlacements : 1000  // if animation is enabled both circles use the same time for fading, otherwise that will depend on the amount of paths to place
+    const dFWayPlacement = (animationEnabled == 1) ? F_count * msInBetweenPlacements : 1000  // if animation is enabled both circles use the same time for fading, otherwise that will depend on the amount of paths to place
+    const dWayPlacement = max([dMWayPlacement, dFWayPlacement])
 
     const dUntilPlacementEnd = dStartWayPlacement + dWayPlacement + OneWayPlacementDuration
 
-    const tCirclesAdjust = d3.transition()
+    const tCirclesAdjust = transition()
         .duration(dCirclesAdjust)
-        .ease(d3.easeCubic)
+        .ease(easeCubic)
 
-    const tCirclesFade = d3.transition()
-        .ease( (animationEnabled == 1) ? d3.easeLinear : d3.easeCubicOut)    
+    const tCirclesFade = transition()
+        .ease( (animationEnabled == 1) ? easeLinear : easeCubicOut)    
     
-    const tPlaceWays = d3.transition()
-        .ease(d3.easeCubicOut)
+    const tPlaceWays = transition()
+        .ease(easeCubicOut)
 
-    let sqrtScale = d3.scaleSqrt()
+    let sqrtScale = scaleSqrt()
         .domain([0, P_count])
         .range([0,  chartRadius])
 
@@ -638,8 +735,8 @@ function createViz(data) {
     svg.selectAll('circle.chart').transition(tCirclesFade).duration(d => d[4]).delay(dStartWayPlacement)
         .attr('r', d => sqrtScale(0))
 
-    const percFormat = d3.format('.0%')
-    const percFormatDec = d3.format('.1%')
+    const percFormat = format('.0%')
+    const percFormatDec = format('.1%')
 
     const circlesText = svg.selectAll('text.chart').data(circlesData)
 
@@ -657,8 +754,8 @@ function createViz(data) {
        
     svg.selectAll('text.chart').transition(tCirclesAdjust).delay(dDelayStart)
         .tween("text", function(d) {
-            var element = d3.select(this);
-            var i = d3.interpolate(0.5, d[2]/P_count); // tween with interpolate to transition text
+            var element = select(this);
+            var i = interpolate(0.5, d[2]/P_count); // tween with interpolate to transition text
             return function(t) {
                 element.text(percFormat( i(t) ));
             };
@@ -671,7 +768,7 @@ function createViz(data) {
 
     // text grows to final KPI
     svg.selectAll('text.chart')
-        .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+        .transition().duration(1800).ease(easeCubicOut).delay(dUntilPlacementEnd)
         .style('font-size', `${kpiTextSize}pt`)
         .attr('y', d => d[1])
         .style('cursor', 'pointer')
@@ -691,7 +788,7 @@ function createViz(data) {
         .attr('stroke-width', '4px')
 
     // kpi underline transitions to width
-    .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+    .transition().duration(1800).ease(easeCubicOut).delay(dUntilPlacementEnd)
         .style('opacity', 1)
         .attr('x1', d => d[0] - kpiUnderlineSize/2)
         .attr('x2', d => d[0] + kpiUnderlineSize/2)
@@ -712,7 +809,7 @@ function createViz(data) {
         .style('fill', '#929292')
 
     // kpi label revealed
-    .transition().ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+    .transition().ease(easeCubicOut).delay(dUntilPlacementEnd)
         .style('opacity', 1)
 
     
@@ -739,6 +836,8 @@ function createViz(data) {
             .on("mouseover", mouseover)
             .on("mousemove", mousemove)
             .on("mouseleave", mouseleave)
+            // context menu
+            .on("contextmenu", openContextMenu);
 
         // colored streets
         // we first create the path for other names as those will be placed below the male/female. This will only be turned to visible after all placement is done
@@ -897,45 +996,31 @@ function createViz(data) {
     }
     
     
-    const contextMenu = d3.select("#context-menu");
+    const contextMenu = select("#context-menu");
 
-    d3.select("body").on("click", function() {
-            contextMenu.style("display", "none");
-        });
+    select("body").on("click", function() {
+        contextMenu.style("display", "none");
+    });
 
-        d3.select("#menu-item-1").on("click", function(d) {
-            // alert("Menu Item 1 clicked");
-            console.log("Menu Item 1 clicked")
-            openPopup(paramForm)
-            contextMenu.style("display", "none");
-        });
+    select("#menu-item-1").on("click", function(d) {
+        showPopup(paramForm)
+        contextMenu.style("display", "none");
+    });
 
     svg.selectAll('path.colored')
-        // highlight
-            .on("mouseenter", handleMouseEnter)
-            .on("mouseout", handleMouseOut)
-        // tooltips
-            .on("mouseover", mouseover)
-            .on("mousemove", mousemove)
-            .on("mouseleave", mouseleave)
-            .on("contextmenu", function (event) {
-
-                event.preventDefault();            
-
-                const streetData = event.srcElement.__data__
-
-                const streetName = (streetData.name) ? streetData.name : '**** SEM NOME ****';
-
-                paramForm = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`
-
-                contextMenu.style("display", "block")
-                    .style("left", `${event.pageX}px`)
-                    .style("top", `${event.pageY}px`);
-            });
+    // highlight
+        .on("mouseenter", handleMouseEnter)
+        .on("mouseout", handleMouseOut)
+    // tooltips
+        .on("mouseover", mouseover)
+        .on("mousemove", mousemove)
+        .on("mouseleave", mouseleave)
+    // context menu
+        .on("contextmenu", openContextMenu);
 
     // make frame visible and add highlight action to kpis
     sleep(dUntilPlacementEnd).then(() => {
-        svg.select('.frame').transition().duration(2000).ease(d3.easeCubic)
+        svg.select('.frame').transition().duration(2000).ease(easeCubic)
             .style('opacity', 0.8)
             .style('pointer-events', 'auto')
 
@@ -961,28 +1046,28 @@ function createViz(data) {
     .append("xhtml:div") // Use xhtml namespace
         .classed('footer', true)
         .html((language === 'pt') ? 
-            '<span>Criado por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspirado no trabalho de <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>.</span>'
+            '<span>Criado por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspirado por <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>. Encontrou um erro? Clique direito do mouse na rua ✎</span>'
             :'<span>Created by <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspired by the work of <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>.</span>')  
         .style('opacity', 1)
-    // .transition().duration(1800).ease(d3.easeCubicOut).delay(dUntilPlacementEnd)
+    // .transition().duration(1800).ease(easeCubicOut).delay(dUntilPlacementEnd)
     //     .style('opacity', 1)
 
 
 
     // *********** control zoom
-    let zoom = d3.zoom()
-        .scaleExtent([1 - scalingFactor, 100])
+    window.zoom = zoom()
+        .scaleExtent([1 - scalingFactor, 50])
         .on('zoom', handleZoom);
 
     function initZoom() {      
-        const transform = d3.zoomIdentity.translate(compensationX, compensationY).scale(1 - scalingFactor); // scaling factor helps adjusting paths within a decent distance between each other. This zooms out to show all area from beggining. Compensation is added to X adn Y to better position map after zoom
+        const transform = zoomIdentity.translate(compensationX, compensationY).scale(1 - scalingFactor); // scaling factor helps adjusting paths within a decent distance between each other. This zooms out to show all area from beggining. Compensation is added to X adn Y to better position map after zoom
 
-        d3.select('svg')
-            .call(zoom).call(zoom.transform, transform);
+        select('svg')
+            .call(window.zoom).call(window.zoom.transform, transform);
     }
 
     function handleZoom(e) {
-        d3.select('g.map')
+        select('g.map')
             .attr('transform', e.transform);
     }
 
@@ -1034,17 +1119,24 @@ async function importResources(varPath, dataPath) {
     return data;
 }
 
+function detectDarkMode() {
+    const bodyStyles = window.getComputedStyle(document.body);
+    const backgroundColor = bodyStyles.backgroundColor;
+
+    
+    // Check if the background color is likely dark
+    const isDarkBackground = backgroundColor === 'rgb(0, 0, 0)' || backgroundColor === 'black';
+
+    if (isDarkBackground ) {
+        var isDarkMode = 1
+    } else {
+        var isDarkMode = 0
+    }
+
+    return isDarkMode
+}
 
 
-// function showLoader() {
-//     const loaderOverlay = document.getElementById('loader-overlay');
-//     // const content = document.getElementById('content');
-
-//     loaderOverlay.style.display = 'flex';
-//     loaderOverlay.style.opacity = '1';
-//     loaderOverlay.style.visibility = 'visible';
-//     // content.style.display = 'none';
-// }
 
 function hideLoader() {
     const loaderOverlay = document.getElementById('loader-overlay');
@@ -1055,22 +1147,9 @@ function hideLoader() {
 
     setTimeout(() => {
         loaderOverlay.style.display = 'none';
-        d3.select("#container").classed("hidden", false);
+        select("#container").classed("hidden", false);
     }, 200); // Match this duration with the CSS transition duration
 }
-
-function openPopup(paramForm) {
-            // Calculate 80% of the screen width and height
-            const width = window.innerWidth * 0.8;
-            const height = window.innerHeight * 0.8;
-
-            // Center the popup on the screen
-            const left = (window.innerWidth - width) / 2;
-            const top = (window.innerHeight - height) / 2;
-
-            window.open(paramForm, 'formPopup', `width=${width},height=${height},left=${left},top=${top}`);
-
-        }
 
 function setLanguage(language) {
 
