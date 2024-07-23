@@ -201,8 +201,8 @@
         color: #00000080;
         font-size: 1em;
         padding-right: 20px;
-        width: 100%; /* Set to 100% to fill the foreignObject */
-        height: 100%; /* Set to 100% to fill the foreignObject */
+        width: 100%; 
+        height: 100%;
         overflow: hidden;
         display: flex;
         flex-direction: column-reverse;
@@ -246,7 +246,6 @@
 
 </style>
 <script type="module">
-// import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"
 // import * as d3 from "https://cdn.skypack.dev/d3@7"
 import { select, selectAll } from "https://cdn.skypack.dev/d3-selection@3";
 import { csvParse } from "https://cdn.skypack.dev/d3-dsv@3";
@@ -257,12 +256,11 @@ import { format, formatDefaultLocale, formatLocale } from "https://cdn.skypack.d
 import {interpolate} from "https://cdn.skypack.dev/d3-interpolate@3";
 import { easeCubic, easeLinear, easeCubicOut} from "https://cdn.skypack.dev/d3-ease@3";
 import { csv } from "https://cdn.skypack.dev/d3-fetch@3";
-import {max} from "https://cdn.jsdelivr.net/npm/d3-array@3/+esm";
+import { max } from "https://cdn.jsdelivr.net/npm/d3-array@3/+esm";
 
 const city = getCity() ?? 'curitiba' // if no city is declared, it falls back to Curitiba
 
 var paramForm;
-const isDarkMode = detectDarkMode()
 
 // Function to import script variables 
 function loadVariables(varPath) {
@@ -274,42 +272,6 @@ function loadVariables(varPath) {
         document.head.append(script);
     });
 }
-
-
-
-
-window.MyGlobalFunctions = {
-    // showPopup: function(paramForm) {
-    //     const iframe = document.getElementById('popupIframe');
-    //     const src = 'form.html';
-    //     // const src = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`;
-    //     iframe.src = src;
-
-    //     document.getElementById('popupContainer').style.display = 'block';
-    //     document.getElementById('popupOverlay').style.display = 'block';
-    // },
-    hidePopup: function() {
-        document.getElementById('hideForm').style.display = 'none';
-        document.getElementById('popupContainer').style.display = 'none';
-        document.getElementById('popupOverlay').style.display = 'none';
-    }
-}
-
-function showPopup(paramForm) {
-    const iframe = document.getElementById('popupIframe');
-    const src = paramForm;
-    // const src = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`;
-    iframe.src = src;
-    
-    document.getElementById('hideForm').style.display = 'block';
-    document.getElementById('popupContainer').style.display = 'block';
-    document.getElementById('popupOverlay').style.display = 'block';
-}
-
-// function hidePopup() {
-//     document.getElementById('popupContainer').style.display = 'none';
-//     document.getElementById('popupOverlay').style.display = 'none';
-// }
 
 // function to import data
 async function loadData(dataPath) {
@@ -340,18 +302,19 @@ async function loadData(dataPath) {
     }
 }
 
-// window.addEventListener('load', function() {
-//     const overlay = document.getElementById('overlay');
-//     const content = document.getElementById('content');
+// event listner to hide loader
+window.addEventListener('load', function() {
+    const overlay = document.getElementById('overlay');
+    const content = document.getElementById('content');
     
-//     overlay.style.opacity = '0';
-//     overlay.style.visibility = 'hidden';
+    overlay.style.opacity = '0';
+    overlay.style.visibility = 'hidden';
 
-//     setTimeout(() => {
-//         overlay.style.display = 'none';
-//         content.style.display = 'block';
-//     }, 500); // Match this duration with the CSS transition duration
-// });
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        content.style.display = 'block';
+    }, 200); // Match this duration with the CSS transition duration
+});
 
 function createViz(data) {
     
@@ -361,6 +324,9 @@ function createViz(data) {
     var kpiUnderlineSize;
     var fName;
     var mName;
+    var textFooterCorrectStPT;
+
+    var isDarkMode = detectDarkMode();
 
     if (language === 'pt') {
         fName = 'MULHERES'
@@ -373,9 +339,9 @@ function createViz(data) {
     // ***** variables for small devices
     if ( window.innerWidth < 992 ) {
         device = 'mobile';
-        var margin = {top:84, right: 0, bottom: 50, left: 0},
+        var margin = {top:84, right: 0, bottom: 60, left: 0},
         width = window.innerWidth - margin.left - margin.right - 30,
-        height = window.innerHeight - margin.top - margin.bottom - (180);
+        height = window.innerHeight - margin.top - margin.bottom - (200);
 
         const chartXPosition = window.innerWidth / 3
 
@@ -388,7 +354,8 @@ function createViz(data) {
         kpiTextSize = 30;
         kpiUnderlineSize = 80;
         
-        
+        textFooterCorrectStPT = 'Encontrou um erro? Selecione e segure a rua para me avisar ✎'
+
     // ***** variables for larger devices
     } else {
 
@@ -409,7 +376,9 @@ function createViz(data) {
         kpiTextSize = 42;
         kpiUnderlineSize = 100;
 
+        textFooterCorrectStPT = 'Encontrou um erro? Clique direito na rua para me avisar ✎'
     }
+
     const compensationX = (device == 'desktop')? compensationXDesktop : 0;
     const compensationY = (device == 'desktop')? 0 : compensationYMobile;
 
@@ -431,13 +400,6 @@ function createViz(data) {
     const P_count = M_count + F_count
     const O_count = Object.keys(O).length
 
-    // var customLocale = formatLocale({
-    //             decimal: ",",
-    //             thousands: ".",
-    //             grouping: [3],  // Grouping by thousands
-    //             currency: ["€", ""]
-    //         });
-    // formatDefaultLocale(customLocale);
     const numFormat = format(".0f")
 
     // adding variables to title and description
@@ -641,6 +603,8 @@ function createViz(data) {
         const streetName = (streetData.name) ? streetData.name : '**** SEM NOME ****';
 
         paramForm = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`
+
+        document.getElementById('menu-item-1').innerHTML = `Corrigir ${streetName} ✎`
 
         contextMenu.style("display", "block")
             .style("left", `${event.pageX}px`)
@@ -917,31 +881,6 @@ function createViz(data) {
 
     } else if (animationEnabled == 0) {
 
-
-        // const initialPaths = map.selectAll('path.way').data(data)
-
-        // // append gray streets
-        // initialPaths.enter()
-        //     .append('path')
-        //         .classed('way', true)
-        //         .classed('pre-colored', true)
-        //         .attr('id', d=> d.id)
-        //         .attr('d', d => transformPathData(d.path_data))
-        //         .attr('stroke', cPathO)
-        //         .attr('fill', 'none')
-        //     // highlights
-        //     .on("mouseenter", handleMouseEnter)
-        //     .on("mouseout", handleMouseOut)
-        //     // tooltips
-        //     .on("mouseover", mouseover)
-        //     .on("mousemove", mousemove)
-        //     .on("mouseleave", mouseleave)
-        
-        // .transition(tCirclesFade).duration(dWayPlacement).delay(dStartWayPlacement)
-        //     .style('opacity', 0)
-
-
-
         // colored streets
         // we first create the path for other names as those will be placed below the male/female. This will only be turned to visible after all placement is done
         const pathO = map.selectAll('path.map.pathO').data(O)
@@ -954,8 +893,6 @@ function createViz(data) {
             .attr('stroke', cPathO)
             .attr('fill', 'none')
             .style('opacity', 1)
-        // .transition(tCirclesFade).duration(dWayPlacement).delay(dStartWayPlacement)
-        //     .style('opacity',1)
 
         // add colored paths women
         const pathF = map.selectAll('path.map.pathF').data(F)
@@ -968,8 +905,6 @@ function createViz(data) {
             .attr('stroke', cPathF)
             .attr('fill', 'none')
             .style('opacity', 1)
-        // .transition(tCirclesFade).duration(dWayPlacement).delay(dStartWayPlacement)
-        //     .style('opacity',1)
            
         // add colored paths men
         const pathM = map.selectAll('path.map.pathM').data(M)
@@ -982,17 +917,7 @@ function createViz(data) {
             .attr('stroke', cPathM)
             .attr('fill', 'none')
             .style('opacity', 1)
-        // .transition(tCirclesFade).duration(dWayPlacement).delay(dStartWayPlacement)
-        //     .style('opacity',1) 
             
-        // svg.selectAll('path.colored')
-        // // highlight
-        //     .on("mouseenter", handleMouseEnter)
-        //     .on("mouseout", handleMouseOut)
-        // // tooltips
-        //     .on("mouseover", mouseover)
-        //     .on("mousemove", mousemove)
-        //     .on("mouseleave", mouseleave)
     }
     
     
@@ -1046,12 +971,9 @@ function createViz(data) {
     .append("xhtml:div") // Use xhtml namespace
         .classed('footer', true)
         .html((language === 'pt') ? 
-            '<span>Criado por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspirado por <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>. Encontrou um erro? Clique direito do mouse na rua ✎</span>'
+            `<span>Criado por <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspirado em <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>. ${textFooterCorrectStPT}</span>`
             :'<span>Created by <a href="https://www.linkedin.com/in/caiocaminoski/" target="_blank">@caiocaminoski</a> <a href="mailto:igualdade.nas.ruas@gmail.com">✉</a> inspired by the work of <a href="https://observablehq.com/@karimdouieb/brussels-streets-gender-inequality" target="_blank">karim_douieb</a>.</span>')  
         .style('opacity', 1)
-    // .transition().duration(1800).ease(easeCubicOut).delay(dUntilPlacementEnd)
-    //     .style('opacity', 1)
-
 
 
     // *********** control zoom
@@ -1074,8 +996,6 @@ function createViz(data) {
     initZoom();
     hideLoader()
 }
-
-
 
 // Function to transform path data to a new starting coordinate
 function translatePathToStartingPoint(pathData, newX, newY) {
@@ -1137,6 +1057,24 @@ function detectDarkMode() {
 }
 
 
+
+window.MyGlobalFunctions = {
+    hidePopup: function() {
+        document.getElementById('hideForm').style.display = 'none';
+        document.getElementById('popupContainer').style.display = 'none';
+        document.getElementById('popupOverlay').style.display = 'none';
+    }
+}
+
+function showPopup(paramForm) {
+    const iframe = document.getElementById('popupIframe');
+    const src = paramForm;
+    iframe.src = src;
+    
+    document.getElementById('hideForm').style.display = 'block';
+    document.getElementById('popupContainer').style.display = 'block';
+    document.getElementById('popupOverlay').style.display = 'block';
+}
 
 function hideLoader() {
     const loaderOverlay = document.getElementById('loader-overlay');
