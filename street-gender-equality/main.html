@@ -100,16 +100,19 @@
         #popupContainer {
             display: none;
             position: fixed;
-            top: 10%;
-            left: 10%;
+            top: 50%;
+            left: 50%;
             width: 80%;
             height: 80%;
+            max-width: 600px;
             background: white;
             border: 1px solid #ccc;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 4px;
             z-index: 1000;
+            transform: translate(-50%, -50%);
         }
+
         #hideForm {
             display: none;
             position: fixed;
@@ -124,6 +127,16 @@
             padding-right: 10px;
             color:white
         }
+
+       /* media just to add the close button for the form */
+        @media (min-width: 751px) {
+            #hideForm {
+                left: calc(50%  + 270px) ;
+                text-align: left;
+                width: 30px;
+            }
+        }
+
         #popupContainer iframe {
             width: 100%;
             height: 100%;
@@ -334,6 +347,8 @@ function createViz(data) {
     var fName;
     var mName;
     var textFooterCorrectStPT;
+    var scalingFactor;
+    var eventForContextmenu;
 
     var isDarkMode = detectDarkMode();
 
@@ -362,8 +377,12 @@ function createViz(data) {
         chartLabelSize = 14;
         kpiTextSize = 30;
         kpiUnderlineSize = 80;
+
+        scalingFactor = scalingFactor_mobile
         
-        textFooterCorrectStPT = 'Encontrou um erro? Selecione e segure a rua para me avisar ✎'
+        textFooterCorrectStPT = 'Encontrou um erro? Selecione e segure a rua e me envie a correção ✎'
+
+        eventForContextmenu = 'contextmenu'
 
     // ***** variables for larger devices
     } else {
@@ -385,7 +404,11 @@ function createViz(data) {
         kpiTextSize = 42;
         kpiUnderlineSize = 100;
 
-        textFooterCorrectStPT = 'Encontrou um erro? Clique direito na rua para me avisar ✎'
+        scalingFactor = scalingFactor_desktop
+
+        textFooterCorrectStPT = 'Encontrou um erro? Clique na rua a me envie a correção ✎'
+
+        eventForContextmenu = 'click'
     }
 
     const compensationX = (device == 'desktop')? compensationXDesktop : 0;
@@ -607,13 +630,14 @@ function createViz(data) {
     }
 
     var openContextMenu = function() {
+
         const streetData = event.srcElement.__data__
 
-        const streetName = (streetData.name) ? streetData.name : '**** SEM NOME ****';
+        const streetName = (streetData.name) ? streetData.name : `**** SEM NOME (${streetData.id}) ****`;
 
         paramForm = `form.html?streetName=${streetName}&streetId=${streetData.id}&cityName=${cityName}&currentCategory=${streetData.gender}`
 
-        document.getElementById('menu-item-1').innerHTML = `Corrigir ${streetName} ✎`
+        document.getElementById('menu-item-1').innerHTML = `Corrigir "${streetName}" ✎`
 
         contextMenu.style("display", "block")
             .style("left", `${event.pageX}px`)
@@ -810,7 +834,7 @@ function createViz(data) {
             .on("mousemove", mousemove)
             .on("mouseleave", mouseleave)
             // context menu
-            .on("contextmenu", openContextMenu);
+            .on(eventForContextmenu, openContextMenu);
 
         // colored streets
         // we first create the path for other names as those will be placed below the male/female. This will only be turned to visible after all placement is done
@@ -933,7 +957,13 @@ function createViz(data) {
     const contextMenu = select("#context-menu");
 
     select("body").on("click", function() {
-        contextMenu.style("display", "none");
+
+        const dataSelected = event.srcElement.__data__
+        // if there is no data associated to the click, it removes the context menu
+        if (!(dataSelected)) {
+            contextMenu.style("display", "none");
+        }
+
     });
 
     select("#menu-item-1").on("click", function(d) {
@@ -950,7 +980,7 @@ function createViz(data) {
         .on("mousemove", mousemove)
         .on("mouseleave", mouseleave)
     // context menu
-        .on("contextmenu", openContextMenu);
+        .on(eventForContextmenu, openContextMenu);
 
     // make frame visible and add highlight action to kpis
     sleep(dUntilPlacementEnd).then(() => {
